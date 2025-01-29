@@ -1,0 +1,34 @@
+{
+	"rules": {
+		".read": false,
+		".write": false,
+		"userRooms": {
+			"$uid": {
+				".write": "auth!=null && $uid == auth.uid && !newData.exists()"
+			}
+		},
+		"rooms": {
+			"$roomId": {
+				".read": "auth!=null && root.child('userRooms').child(auth.uid).val() == $roomId",
+				"roomOwner": {
+					".write": "auth!=null && data.val() == auth.uid"
+				},
+				"setCompleted": {
+					".write": "auth!=null && data.parent().child('roomOwner').val() == auth.uid && data.parent().child('player').exists() "
+				},
+				"winningTemplate": {
+					".write": "auth!=null && data.parent().child('roomOwner').val() == auth.uid && !data.parent().child('setCompleted').exists()"
+				},
+				"losingTemplate": {
+					".write": "auth!=null && data.parent().child('roomOwner').val() == auth.uid && !data.parent().child('setCompleted').exists()"
+				},
+				"winningRate": {
+					".write": "auth!=null && data.parent().child('roomOwner').val() == auth.uid && !data.parent().child('setCompleted').exists()"
+				},
+				"playerActions": {
+					".write": "auth!=null && data.parent().child('player').val() == auth.uid"
+				}
+			}
+		}
+	}
+}
