@@ -2,14 +2,14 @@
 	<header ref="header" class="fixed-top">
 		<nav class="navbar navbar-expand mt-2 py-0">
 			<div class="container-fluid">
-				<a href="/" class="navbar-brand p-2 m-0 lh-1 rounded-2">
+				<RouterLink to="/" class="navbar-brand p-2 m-0 lh-1 rounded-2">
 					<img
 						id="navbar-logo"
 						src="@/assets/logo.svg"
 						role="presentation"
 						alt="刮刮Hot+logo"
 					/>
-				</a>
+				</RouterLink>
 				<div v-if="!isLoggedIn" class="d-flex">
 					<a
 						@click="clickLoginBtn"
@@ -54,7 +54,7 @@
 
 <script setup>
 	import { computed, useTemplateRef } from 'vue'
-	import { useRouter } from 'vue-router'
+	import { RouterLink, useRouter } from 'vue-router'
 	import { storeToRefs } from 'pinia'
 	import { signOut } from 'firebase/auth'
 	import { auth } from '@/firebase'
