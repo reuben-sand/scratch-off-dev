@@ -295,6 +295,8 @@
 		if (textBoxContentRef.value.textContent) {
 			pathData.tool = 'fonts'
 			const ctx = canvasRef.value.getContext('2d')
+			ctx.textBaseline = 'top'
+			ctx.font = "16px 'Noto Sans TC', sans-serif"
 			const textBoxRect = textBoxContentRef.value.getBoundingClientRect()
 			const canvasRect = canvasRef.value.getBoundingClientRect()
 			const printPlaceX = Math.floor((textBoxRect.left - canvasRect.left) / scaleX)
@@ -339,10 +341,6 @@
 	}, 200)
 	onMounted(() => {
 		window.addEventListener('resize', updateTextBoxPlace)
-		const ctx = canvasRef.value.getContext('2d')
-		ctx.textBaseline = 'top'
-
-		ctx.font = "16px 'Noto Sans TC', sans-serif"
 	})
 	onUnmounted(() => {
 		window.removeEventListener('resize', updateTextBoxPlace)

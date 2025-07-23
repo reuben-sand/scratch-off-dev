@@ -126,6 +126,8 @@
 				ctx.stroke()
 			} else if (pathData.tool === 'fonts') {
 				ctx.fillStyle = pathData.color
+				ctx.textBaseline = 'top'
+				ctx.font = "16px 'Noto Sans TC', sans-serif"
 				ctx.fillText(pathData.textContent, pathData.actions[0].x, pathData.actions[0].y)
 			} else if (pathData === 'fill') {
 				ctx.fillStyle = pathData.color
@@ -167,6 +169,8 @@
 				ctx.stroke()
 			} else if (pathData.tool === 'fonts') {
 				ctx.fillStyle = pathData.color
+				ctx.textBaseline = 'top'
+				ctx.font = "16px 'Noto Sans TC', sans-serif"
 				ctx.fillText(pathData.textContent, pathData.actions[0].x, pathData.actions[0].y)
 			} else if (pathData.tool === 'fill') {
 				ctx.fillStyle = pathData.color
