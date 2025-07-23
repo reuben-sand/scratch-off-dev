@@ -46,20 +46,8 @@
 			ctx.save()
 			ctx.beginPath()
 			if (pathData.tool === 'pen') {
-				//以下更改中
-				subPathData = pathData.actions[0]
-				if (pathData.actions.length > 0) {
-					ctx.moveTo(subPathData.x, subPathData.y)
-				}
-				for (let i = 1; i < pathData.actions.length; i++) {
-					subPathData = pathData.actions[i]
-					ctx.lineTo(subPathData.x, subPathData.y)
-				}
-
-				ctx.strokeStyle = pathData.color
 				ctx.lineWidth = 2
-				ctx.stroke()
-			} else if (pathData.tool === 'eraser') {
+				ctx.strokeStyle = pathData.color
 				subPathData = pathData.actions[0]
 				if (pathData.actions.length > 0) {
 					ctx.moveTo(subPathData.x, subPathData.y)
@@ -67,10 +55,22 @@
 				for (let i = 1; i < pathData.actions.length; i++) {
 					subPathData = pathData.actions[i]
 					ctx.lineTo(subPathData.x, subPathData.y)
+					ctx.stroke()
+					ctx.moveTo(subPathData.x, subPathData.y)
 				}
+			} else if (pathData.tool === 'eraser') {
 				ctx.lineWidth = 10
 				ctx.globalCompositeOperation = 'destination-out'
-				ctx.stroke()
+				subPathData = pathData.actions[0]
+				if (pathData.actions.length > 0) {
+					ctx.moveTo(subPathData.x, subPathData.y)
+				}
+				for (let i = 1; i < pathData.actions.length; i++) {
+					subPathData = pathData.actions[i]
+					ctx.lineTo(subPathData.x, subPathData.y)
+					ctx.stroke()
+					ctx.moveTo(subPathData.x, subPathData.y)
+				}
 			} else if (pathData.tool === 'fonts') {
 				ctx.fillStyle = pathData.color
 				ctx.fillText(pathData.textContent, pathData.actions[0].x, pathData.actions[0].y)
@@ -88,18 +88,8 @@
 			ctx.save()
 			ctx.beginPath()
 			if (pathData.tool === 'pen') {
-				subPathData = pathData.actions[0]
-				if (pathData.actions.length > 0) {
-					ctx.moveTo(subPathData.x, subPathData.y)
-				}
-				for (let i = 1; i < pathData.actions.length; i++) {
-					subPathData = pathData.actions[i]
-					ctx.lineTo(subPathData.x, subPathData.y)
-				}
-				ctx.strokeStyle = pathData.color
 				ctx.lineWidth = 2
-				ctx.stroke()
-			} else if (pathData.tool === 'eraser') {
+				ctx.strokeStyle = pathData.color
 				subPathData = pathData.actions[0]
 				if (pathData.actions.length > 0) {
 					ctx.moveTo(subPathData.x, subPathData.y)
@@ -107,10 +97,23 @@
 				for (let i = 1; i < pathData.actions.length; i++) {
 					subPathData = pathData.actions[i]
 					ctx.lineTo(subPathData.x, subPathData.y)
+					ctx.stroke()
+					ctx.moveTo(subPathData.x, subPathData.y)
 				}
+			} else if (pathData.tool === 'eraser') {
 				ctx.lineWidth = 10
 				ctx.globalCompositeOperation = 'destination-out'
-				ctx.stroke()
+
+				subPathData = pathData.actions[0]
+				if (pathData.actions.length > 0) {
+					ctx.moveTo(subPathData.x, subPathData.y)
+				}
+				for (let i = 1; i < pathData.actions.length; i++) {
+					subPathData = pathData.actions[i]
+					ctx.lineTo(subPathData.x, subPathData.y)
+					ctx.stroke()
+					ctx.moveTo(subPathData.x, subPathData.y)
+				}
 			} else if (pathData.tool === 'fonts') {
 				ctx.fillStyle = pathData.color
 				ctx.fillText(pathData.textContent, pathData.actions[0].x, pathData.actions[0].y)

@@ -106,6 +106,8 @@
 			ctx.save()
 			ctx.beginPath()
 			if (pathData.tool === 'pen') {
+				ctx.lineWidth = 2
+				ctx.strokeStyle = pathData.color
 				subPathData = pathData.actions[0]
 				if (pathData.actions.length > 0) {
 					ctx.moveTo(subPathData.x, subPathData.y)
@@ -113,17 +115,22 @@
 				for (let i = 1; i < pathData.actions.length; i++) {
 					subPathData = pathData.actions[i]
 					ctx.lineTo(subPathData.x, subPathData.y)
+					ctx.stroke()
+					ctx.moveTo(subPathData.x, subPathData.y)
 				}
-				ctx.strokeStyle = pathData.color
-				ctx.lineWidth = 2
-				ctx.stroke()
 			} else if (pathData.tool === 'eraser') {
-				pathData.actions.forEach((subPathData) => {
-					ctx[subPathData.type](subPathData.x, subPathData.y)
-				})
 				ctx.lineWidth = 10
 				ctx.globalCompositeOperation = 'destination-out'
-				ctx.stroke()
+				subPathData = pathData.actions[0]
+				if (pathData.actions.length > 0) {
+					ctx.moveTo(subPathData.x, subPathData.y)
+				}
+				for (let i = 1; i < pathData.actions.length; i++) {
+					subPathData = pathData.actions[i]
+					ctx.lineTo(subPathData.x, subPathData.y)
+					ctx.stroke()
+					ctx.moveTo(subPathData.x, subPathData.y)
+				}
 			} else if (pathData.tool === 'fonts') {
 				ctx.fillStyle = pathData.color
 				ctx.textBaseline = 'top'
@@ -150,23 +157,31 @@
 			ctx.beginPath()
 			let subPathData = pathData.actions[0]
 			if (pathData.tool === 'pen') {
+				ctx.lineWidth = 2
+				ctx.strokeStyle = pathData.color
+				subPathData = pathData.actions[0]
 				if (pathData.actions.length > 0) {
 					ctx.moveTo(subPathData.x, subPathData.y)
 				}
 				for (let i = 1; i < pathData.actions.length; i++) {
 					subPathData = pathData.actions[i]
 					ctx.lineTo(subPathData.x, subPathData.y)
+					ctx.stroke()
+					ctx.moveTo(subPathData.x, subPathData.y)
 				}
-				ctx.strokeStyle = pathData.color
-				ctx.lineWidth = 2
-				ctx.stroke()
 			} else if (pathData.tool === 'eraser') {
-				pathData.actions.forEach((subPathData) => {
-					ctx[subPathData.type](subPathData.x, subPathData.y)
-				})
 				ctx.lineWidth = 10
 				ctx.globalCompositeOperation = 'destination-out'
-				ctx.stroke()
+				subPathData = pathData.actions[0]
+				if (pathData.actions.length > 0) {
+					ctx.moveTo(subPathData.x, subPathData.y)
+				}
+				for (let i = 1; i < pathData.actions.length; i++) {
+					subPathData = pathData.actions[i]
+					ctx.lineTo(subPathData.x, subPathData.y)
+					ctx.stroke()
+					ctx.moveTo(subPathData.x, subPathData.y)
+				}
 			} else if (pathData.tool === 'fonts') {
 				ctx.fillStyle = pathData.color
 				ctx.textBaseline = 'top'
@@ -272,8 +287,7 @@
 					data['path' + pathIndex].forEach((subPathData) => {
 						ctx[subPathData.type](subPathData.x, subPathData.y)
 					})
-					ctx.lineWidth = 10
-					ctx.globalCompositeOperation = 'destination-out'
+
 					ctx.stroke()
 					ctx.restore()
 					pathIndex++
