@@ -214,7 +214,7 @@
 		beginDrawing = true
 		path = new Path2D()
 		path.moveTo(x, y)
-		scratchOffPathData.push({ type: 'moveTo', x: x, y: y })
+		scratchOffPathData.push({ x: x, y: y })
 		oneStep = true
 	}
 	const canvasMousemove = (event) => {
@@ -226,7 +226,7 @@
 			const currentX = Math.floor((event.clientX - rect.left) / scaleX)
 			const currentY = Math.floor((event.clientY - rect.top) / scaleY)
 			if (Math.abs(currentX - x) > 4 || Math.abs(currentY - y) > 4) {
-				scratchOffPathData.push({ type: 'lineTo', x: currentX, y: currentY })
+				scratchOffPathData.push({ x: currentX, y: currentY })
 				if (oneStep) {
 					path.lineTo(currentX, currentY)
 					ctx.stroke(path)
@@ -283,12 +283,21 @@
 				if (data) {
 					const ctx = outerCanvasRef.value.getContext('2d')
 					ctx.save()
-					ctx.beginPath()
-					data['path' + pathIndex].forEach((subPathData) => {
-						ctx[subPathData.type](subPathData.x, subPathData.y)
-					})
 
-					ctx.stroke()
+					ctx.lineWidth = 10
+					ctx.globalCompositeOperation = 'destination-out'
+					ctx.beginPath()
+					let subPathData = data['path' + pathIndex][0]
+					if (data['path' + pathIndex].length > 0) {
+						ctx.moveTo(subPathData.x, subPathData.y)
+					}
+					for (let i = 1; i < data['path' + pathIndex].length; i++) {
+						subPathData = data['path' + pathIndex][i]
+						ctx.lineTo(subPathData.x, subPathData.y)
+						ctx.stroke()
+						ctx.moveTo(subPathData.x, subPathData.y)
+					}
+
 					ctx.restore()
 					pathIndex++
 
