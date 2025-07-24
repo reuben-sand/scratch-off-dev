@@ -397,6 +397,7 @@
 		/* 斷線或是離開該view刪除自己擁有房間的資訊，在cloud function會監控該刪除的動作，連帶刪除所有房間相關資料 */
 		onDisconnect(userRoomsUidRef).cancel()
 		remove(userRoomsUidRef)
+		isRoomOwner.value = false
 	})
 	watch(isRoomFull, (newValue) => {
 		if (!newValue) {
