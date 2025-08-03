@@ -118,6 +118,7 @@
 		</div>
 	</main>
 	<WaitGameModal
+		@delay-dispose="delayModalDispose"
 		ref="waitGameModal"
 		:is-room-full="isRoomFull"
 		:is-room-Owner="isRoomOwner"
@@ -147,6 +148,7 @@
 	import { debounce } from '@/composables/useRateLimit'
 	import { useUserStore } from '@/stores/UserStore'
 	import { useWindowStore } from '@/stores/WindowStore'
+	import { Mutex } from '@/composables/useLock'
 
 	/* router */
 	const route = useRoute()
@@ -261,18 +263,21 @@
 			}, ms)
 		})
 	}
+	let isCancelled = false
 	const openLoadingGameModal = async () => {
 		if (isRoomOwner.value) {
 			const roomRef = realtimeRef(realtimeDB, 'rooms/' + roomId)
 			await update(roomRef, {
 				setCompleted: true,
 			})
+			if (isCancelled) return
 			waitGameModalRef.value.getOrCreateModal().show()
 			setCompleted.value = true
 			const lotteryResult = await makeLotteryResult({})
 			openScratchOff(lotteryResult.data.lotteryResult)
 			/* 我只是想要展示一下動畫，所以加上個延遲 */
 			await delay(1000)
+			if (isCancelled) return
 			if (waitGameModalRef.value.getModal()) {
 				waitGameModalRef.value.getModal().hide()
 			}
@@ -281,6 +286,49 @@
 	}
 	const scratchOffTemplate = ref({})
 
+	const modalMutex = new Mutex()
+	const delayBsInstanceDispose = async (delay, ...mutexs) => {
+		const startTime = performance.now()
+
+		if (mutexs.length > 1) {
+			await Promise.all(
+				mutexs.map((mutex) => {
+					mutex.acquire()
+				}),
+			)
+		} else {
+			await mutexs[0].acquire()
+		}
+
+		const elapsedTime = performance.now() - startTime
+		const remaining = delay - Math.floor(elapsedTime)
+
+		if (remaining > 0) {
+			await new Promise((resolve) => setTimeout(resolve, remaining))
+		}
+		if (mutexs.length > 1) {
+			mutexs.forEach((mutex) => {
+				mutex.release()
+			})
+		} else {
+			mutexs[0].release()
+		}
+	}
+	const delayModalDispose = () => {
+		delayBsInstanceDispose(500, modalMutex)
+	}
+	const disposeModal = async () => {
+		isCancelled = true
+		if (waitGameModalRef.value.getModal()) {
+			const bsInstance = waitGameModalRef.value.getModal()
+			await modalMutex.acquire()
+			try {
+				bsInstance.dispose()
+			} finally {
+				modalMutex.release()
+			}
+		}
+	}
 	const observer = new MutationObserver((mutationsList) => {
 		for (const mutation of mutationsList) {
 			if (mutation.attributeName === 'disabled' && mutation.target.disabled === false) {
@@ -353,7 +401,7 @@
 			const setCompletedRef = realtimeRef(realtimeDB, 'rooms/' + roomId + '/setCompleted')
 			const unsubscribeSetCompleted = onValue(setCompletedRef, (snapshot) => {
 				const data = snapshot.val()
-				if (data === true) {
+				if (data === true && !isCancelled) {
 					waitGameModalRef.value.getOrCreateModal().show()
 				}
 			})
@@ -364,7 +412,9 @@
 					/* 我只是想要展示一下動畫，所以加上個延遲 */
 					await delay(1000)
 					openScratchOff(snapshot.val())
+					if (isCancelled) return
 					if (waitGameModalRef.value.getModal()) {
+						if (isCancelled) return
 						waitGameModalRef.value.getModal().hide()
 						lotteryCompleted.value = true
 					}
@@ -380,9 +430,7 @@
 		onDisconnect(userRoomsUidRef).remove()
 	})
 	onBeforeUnmount(() => {
-		if (waitGameModalRef.value.getModal()) {
-			waitGameModalRef.value.getModal().hide()
-		}
+		disposeModal()
 		if (timeoutId !== null) {
 			clearTimeout(timeoutId)
 			timeoutId = null

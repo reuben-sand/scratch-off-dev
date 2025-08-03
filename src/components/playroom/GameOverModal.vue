@@ -25,8 +25,10 @@
 
 <script setup>
 	import { Modal } from 'bootstrap'
-	import { useTemplateRef } from 'vue'
+	import { useTemplateRef, onMounted, onBeforeUnmount } from 'vue'
 
+	/* emits */
+	const emit = defineEmits(['delayDispose'])
 	/* props */
 	const { gameResult } = defineProps({
 		gameResult: Boolean,
@@ -46,5 +48,17 @@
 	defineExpose({
 		getModal,
 		getOrCreateModal,
+	})
+
+	const delayDispose = () => {
+		emit('delayDispose')
+	}
+	onMounted(() => {
+		gameOverModalRef.value.addEventListener('show.bs.modal', delayDispose)
+		gameOverModalRef.value.addEventListener('hide.bs.modal', delayDispose)
+	})
+	onBeforeUnmount(() => {
+		gameOverModalRef.value.removeEventListener('show.bs.modal', delayDispose)
+		gameOverModalRef.value.removeEventListener('hide.bs.modal', delayDispose)
 	})
 </script>

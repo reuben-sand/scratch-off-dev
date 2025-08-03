@@ -20,8 +20,10 @@
 
 <script setup>
 	import { Modal } from 'bootstrap'
-	import { useTemplateRef } from 'vue'
+	import { useTemplateRef, onMounted, onBeforeUnmount } from 'vue'
 
+	/* emits */
+	const emit = defineEmits(['delayDispose'])
 	/* 模板ref */
 	const loadingGameModalRef = useTemplateRef('loadingGameModal')
 
@@ -35,5 +37,16 @@
 	defineExpose({
 		getModal,
 		getOrCreateModal,
+	})
+	const delayDispose = () => {
+		emit('delayDispose')
+	}
+	onMounted(() => {
+		loadingGameModalRef.value.addEventListener('show.bs.modal', delayDispose)
+		loadingGameModalRef.value.addEventListener('hide.bs.modal', delayDispose)
+	})
+	onBeforeUnmount(() => {
+		loadingGameModalRef.value.removeEventListener('show.bs.modal', delayDispose)
+		loadingGameModalRef.value.removeEventListener('hide.bs.modal', delayDispose)
 	})
 </script>

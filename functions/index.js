@@ -102,8 +102,10 @@ export const enterRoom = onCall({ region: 'asia-southeast1' }, async (request) =
 		return {}
 	}
 })
+const realtimeDBregion =
+	process.env.FUNCTIONS_EMULATOR === 'true' ? 'us-central1' : 'asia-southeast1'
 export const deleteRoom = onValueDeleted(
-	{ ref: '/userRooms/{uid}', region: 'asia-southeast1' },
+	{ ref: '/userRooms/{uid}', region: realtimeDBregion },
 	async (event) => {
 		const uid = event.params.uid
 		logger.log(uid, '節點，在userRooms中偵測到更新')

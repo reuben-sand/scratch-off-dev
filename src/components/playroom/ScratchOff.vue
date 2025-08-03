@@ -17,7 +17,11 @@
 		@mouseup="!isRoomOwner ? canvasMouseup() : null"
 	></canvas>
 	<Teleport to="body">
-		<GameOverModal ref="gameOverModal" :game-result="gameResult" />
+		<GameOverModal
+			ref="gameOverModal"
+			:game-result="gameResult"
+			@delay-dispose="delayModalDispose"
+		/>
 	</Teleport>
 </template>
 
@@ -31,6 +35,7 @@
 	import { useBoardStore } from '@/stores/BoardStore'
 	import { useUserStore } from '@/stores/UserStore'
 	import GameOverModal from './GameOverModal.vue'
+	import { Mutex } from '@/composables/useLock'
 
 	/* pinia store */
 	const boardStore = useBoardStore()
@@ -245,6 +250,7 @@
 		}
 	}
 	let pathIndex = 0
+	let isCancelled = false
 	const playerActionsRef = realtimeRef(realtimeDB, 'rooms/' + roomId + '/playerActions')
 	const canvasMouseup = async () => {
 		await update(playerActionsRef, {
@@ -263,6 +269,7 @@
 			}
 		}
 		if (opactiyPixelPoints.size < Math.floor(pointsSize / 4)) {
+			if (isCancelled) return
 			gameOverModalRef.value.getOrCreateModal().show()
 		}
 	}
@@ -274,6 +281,37 @@
 		}
 	})
 	const unsubscribes = []
+	const modalMutex = new Mutex()
+	const delayBsInstanceDispose = async (delay, ...mutexs) => {
+		const startTime = performance.now()
+
+		if (mutexs.length > 1) {
+			await Promise.all(
+				mutexs.map((mutex) => {
+					mutex.acquire()
+				}),
+			)
+		} else {
+			await mutexs[0].acquire()
+		}
+
+		const elapsedTime = performance.now() - startTime
+		const remaining = delay - Math.floor(elapsedTime)
+
+		if (remaining > 0) {
+			await new Promise((resolve) => setTimeout(resolve, remaining))
+		}
+		if (mutexs.length > 1) {
+			mutexs.forEach((mutex) => {
+				mutex.release()
+			})
+		} else {
+			mutexs[0].release()
+		}
+	}
+	const delayModalDispose = () => {
+		delayBsInstanceDispose(500, modalMutex)
+	}
 	onMounted(() => {
 		makeInnerScratchOff()
 		drawOuterCanvas()
@@ -308,6 +346,7 @@
 						}
 					}
 					if (opactiyPixelPoints.size < Math.floor(pointsSize / 4)) {
+						if (isCancelled) return
 						gameOverModalRef.value.getOrCreateModal().show()
 					}
 				}
@@ -315,9 +354,19 @@
 			unsubscribes.push(unsubscribePlayAction)
 		}
 	})
-	onBeforeUnmount(() => {
+	const disposeModal = async () => {
+		isCancelled = true
 		if (gameOverModalRef.value.getModal()) {
-			gameOverModalRef.value.getModal().hide()
+			const bsInstance = gameOverModalRef.value.getModal()
+			await modalMutex.acquire()
+			try {
+				bsInstance.dispose()
+			} finally {
+				modalMutex.release()
+			}
 		}
+	}
+	onBeforeUnmount(() => {
+		disposeModal()
 	})
 </script>

@@ -260,6 +260,29 @@ header .btn {
 #btn-toolbar {
   flex-direction: column;
 }
+
+/* 普通按鈕群組裡的按鈕和btn-check群組裡的按鈕，水平 */
+#btn-toolbar .btn-group > .btn:nth-child(n + 3).btnFirst,
+#btn-toolbar .btn-group > :not(.btn-check) + .btn.btnFirst {
+  border-top-left-radius: var(--bs-btn-border-radius);
+  border-bottom-left-radius: var(--bs-btn-border-radius);
+}
+#btn-toolbar .btn-group > .btn:not(:last-child):not(.dropdown-toggle).btnLast {
+  border-top-right-radius: var(--bs-btn-border-radius);
+  border-bottom-right-radius: var(--bs-btn-border-radius);
+}
+/* 普通按鈕群組裡的按鈕和btn-check群組裡的按鈕，垂直 */
+#btn-toolbar .btn-group-vertical > .btn ~ .btn.btnFirst {
+  border-top-left-radius: var(--bs-btn-border-radius);
+  border-top-right-radius: var(--bs-btn-border-radius);
+}
+#btn-toolbar
+  .btn-group-vertical
+  > .btn:not(:last-child):not(.dropdown-toggle).btnLast {
+  border-bottom-right-radius: var(--bs-btn-border-radius);
+  border-bottom-left-radius: var(--bs-btn-border-radius);
+}
+
 #color-picker {
   bottom: 100%;
 }

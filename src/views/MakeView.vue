@@ -68,7 +68,7 @@
 	import RangeBoard from '@/components/make/RangeBoard.vue'
 	import InnerBoard from '@/components/make/InnerBoard.vue'
 	import OuterBoard from '@/components/make/OuterBoard.vue'
-	import BoradStateBtn from '@/components/make/BoradStateBtn.vue'
+	import BoradStateBtn from '@/components/make/BoardStateBtn.vue'
 	import TemplatesOffcanvas from '@/components/make/TemplatesOffcanvas.vue'
 	import penSvgPath from '@/assets/pen.svg'
 	import eraserSvgPath from '@/assets/eraser.svg'

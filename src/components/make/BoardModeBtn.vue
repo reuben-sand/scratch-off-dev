@@ -12,11 +12,13 @@
 		/>
 		<label
 			class="btn toggle-board-btn"
+			ref="boardToolitipTrigger1"
 			for="drawTask1"
 			data-bs-toggle="tooltip"
 			:data-bs-placement="tooltipPlacement"
 			data-bs-custom-class="board-btn-tooltip"
 			data-bs-title="制定塗層範圍"
+			data-bs-trigger="hover"
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -59,11 +61,13 @@
 		/>
 		<label
 			class="btn toggle-board-btn"
+			ref="boardToolitipTrigger2"
 			for="drawTask2"
 			data-bs-toggle="tooltip"
 			:data-bs-placement="tooltipPlacement"
 			data-bs-custom-class="board-btn-tooltip"
 			data-bs-title="繪製塗層下外觀"
+			data-bs-trigger="hover"
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -105,10 +109,12 @@
 		<label
 			class="btn toggle-board-btn"
 			for="drawTask3"
+			ref="boardToolitipTrigger3"
 			data-bs-toggle="tooltip"
 			:data-bs-placement="tooltipPlacement"
 			data-bs-custom-class="board-btn-tooltip"
 			data-bs-title="繪製塗層上外觀"
+			data-bs-trigger="hover"
 		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -129,11 +135,13 @@
 	</div>
 </template>
 <script setup>
-	import { ref, computed, onMounted, useTemplateRef, watch } from 'vue'
+	import { ref, computed, onMounted, useTemplateRef, watch, onBeforeUnmount } from 'vue'
 	import { storeToRefs } from 'pinia'
 	import { Tooltip } from 'bootstrap'
 	import { useBoardStore } from '@/stores/BoardStore'
 	import { useWindowStore } from '@/stores/WindowStore'
+	import { debounce } from '@/composables/useRateLimit'
+	import { Mutex } from '@/composables/useLock'
 
 	/* pinia store */
 	const boardStore = useBoardStore()
@@ -145,30 +153,112 @@
 	const boardMode = defineModel({ required: true, default: 'range' })
 
 	/* 模板ref */
-	const btnGroupRef = useTemplateRef('btnGroup')
+	const boardToolitipTrigger1Ref = useTemplateRef('boardToolitipTrigger1')
+	const boardToolitipTrigger2Ref = useTemplateRef('boardToolitipTrigger2')
+	const boardToolitipTrigger3Ref = useTemplateRef('boardToolitipTrigger3')
+	const boardToolitipTriggerRefList = [
+		boardToolitipTrigger1Ref,
+		boardToolitipTrigger2Ref,
+		boardToolitipTrigger3Ref,
+	]
 
 	const drawnRange = ref(true)
 	const tooltipPlacement = computed(() => (deviceRatioChange.value ? 'left' : 'top'))
+	let isCancelled = false
+
+	const tooltipMutex = new Mutex()
+	const delayBsInstanceDispose = async (delay, ...mutexs) => {
+		const startTime = performance.now()
+
+		if (mutexs.length > 1) {
+			await Promise.all(
+				mutexs.map((mutex) => {
+					mutex.acquire()
+				}),
+			)
+		} else {
+			await mutexs[0].acquire()
+		}
+
+		const elapsedTime = performance.now() - startTime
+		const remaining = delay - Math.floor(elapsedTime)
+
+		if (remaining > 0) {
+			await new Promise((resolve) => setTimeout(resolve, remaining))
+		}
+		if (mutexs.length > 1) {
+			mutexs.forEach((mutex) => {
+				mutex.release()
+			})
+		} else {
+			mutexs[0].release()
+		}
+	}
+	const delayTooltipDispose = () => {
+		delayBsInstanceDispose(300, tooltipMutex)
+	}
 	onMounted(() => {
-		const tooltipTriggerList = [].slice.call(
-			btnGroupRef.value.querySelectorAll('[data-bs-toggle="tooltip"]'),
-		)
-		tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-			return new Tooltip(tooltipTriggerEl)
+		boardToolitipTriggerRefList.forEach((boardToolitipTriggerRef) => {
+			boardToolitipTriggerRef.value.addEventListener('show.bs.tooltip', delayTooltipDispose)
+			boardToolitipTriggerRef.value.addEventListener('hide.bs.tooltip', delayTooltipDispose)
+			new Tooltip(boardToolitipTriggerRef.value)
 		})
 	})
-	watch(deviceRatioChange, () => {
-		const tooltipTriggers = btnGroupRef.value.querySelectorAll('[data-bs-toggle="tooltip"]')
-		tooltipTriggers.forEach((trigger) => {
-			const tooltipInstance = Tooltip.getInstance(trigger)
-			if (tooltipInstance) {
-				tooltipInstance.dispose()
+	const disposeBsInstances = async (mutex, type, ...templateRefs) => {
+		const bsInstances = templateRefs.map((templateRef) => {
+			return type.getInstance(templateRef.value)
+		})
+		await mutex.acquire()
+		try {
+			bsInstances.forEach((bsInstance) => {
+				if (bsInstance) {
+					bsInstance.dispose()
+				}
+			})
+		} finally {
+			mutex.release()
+		}
+	}
+	onBeforeUnmount(() => {
+		isCancelled = true
+		boardToolitipTriggerRefList.forEach((boardToolitipTriggerRef) => {
+			boardToolitipTriggerRef.value.removeEventListener(
+				'show.bs.tooltip',
+				delayTooltipDispose,
+			)
+			boardToolitipTriggerRef.value.removeEventListener(
+				'hide.bs.tooltip',
+				delayTooltipDispose,
+			)
+		})
+		disposeBsInstances(tooltipMutex, Tooltip, ...boardToolitipTriggerRefList)
+	})
+
+	const tooltipsRemake = async (mutex, ...templateRefs) => {
+		if (isCancelled) return
+		await mutex.acquire()
+		try {
+			for (const templateRef of templateRefs) {
+				if (templateRef.value) {
+					if (isCancelled) return
+					const tooltip = Tooltip.getInstance(templateRef.value)
+					if (tooltip) {
+						tooltip.dispose()
+					}
+					if (isCancelled) return
+					new Tooltip(templateRef.value)
+				}
 			}
-			setTimeout(() => {
-				new Tooltip(trigger)
-			}, 100)
-		})
-	})
+		} finally {
+			mutex.release()
+		}
+	}
+	watch(
+		deviceRatioChange,
+		debounce(() => {
+			tooltipsRemake(tooltipMutex, ...boardToolitipTriggerRefList)
+		}, 500),
+	)
 	watch(cardClipPath, (newValue) => {
 		if (newValue) {
 			drawnRange.value = false

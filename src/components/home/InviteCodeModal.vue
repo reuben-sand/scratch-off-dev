@@ -1,7 +1,7 @@
 <template>
 	<div
 		id="invite-code-modal"
-		class="home-modal"
+		class="home-modal modal"
 		ref="inviteCodeModal"
 		tabindex="-1"
 		aria-labelledby="invite-code-modal-title"
@@ -51,13 +51,14 @@
 	</div>
 </template>
 <script setup>
-	import { ref, useTemplateRef, onMounted, onUnmounted, watch } from 'vue'
+	import { ref, useTemplateRef, onMounted, watch, onBeforeUnmount } from 'vue'
 	import { useRouter } from 'vue-router'
 	import { Modal } from 'bootstrap'
 	import { storeToRefs } from 'pinia'
 	import { httpsCallable } from 'firebase/functions'
 	import { functions } from '@/firebase'
 	import { useUserStore } from '@/stores/UserStore'
+	import { Mutex } from '@/composables/useLock'
 
 	/* pinia store */
 	const userStore = useUserStore()
@@ -69,7 +70,6 @@
 	/* 模板ref */
 	const inviteCodeModalRef = useTemplateRef('inviteCodeModal')
 	const inviteCodeInputRef = useTemplateRef('inviteCodeInput')
-
 	const inviteCode = ref('')
 	const inviteCodeInvalid = ref('')
 	const showValidation = ref(false)
@@ -108,16 +108,64 @@
 			}
 		}
 	}
+	let isCancelled = false
+	const modalMutex = new Mutex()
+	const delayBsInstanceDispose = async (delay, ...mutexs) => {
+		const startTime = performance.now()
+
+		if (mutexs.length > 1) {
+			await Promise.all(
+				mutexs.map((mutex) => {
+					mutex.acquire()
+				}),
+			)
+		} else {
+			await mutexs[0].acquire()
+		}
+
+		const elapsedTime = performance.now() - startTime
+		const remaining = delay - Math.floor(elapsedTime)
+
+		if (remaining > 0) {
+			await new Promise((resolve) => setTimeout(resolve, remaining))
+		}
+		if (mutexs.length > 1) {
+			mutexs.forEach((mutex) => {
+				mutex.release()
+			})
+		} else {
+			mutexs[0].release()
+		}
+	}
+	const delayModalDispose = () => {
+		delayBsInstanceDispose(500, modalMutex)
+	}
 	onMounted(() => {
+		inviteCodeModalRef.value.addEventListener('show.bs.modal', delayModalDispose)
+		inviteCodeModalRef.value.addEventListener('hide.bs.modal', delayModalDispose)
 		inviteCodeModalRef.value.addEventListener('hidden.bs.modal', hiddenModalAction)
 	})
-	onUnmounted(() => {
-		if (inviteCodeModalRef.value) {
-			inviteCodeModalRef.value.removeEventListener('hidden.bs.modal', hiddenModalAction)
+	const disposeBsInstance = async (mutex, type, templateRefValue) => {
+		if (type.getInstance(templateRefValue)) {
+			const bsInstance = type.getInstance(templateRefValue)
+			await mutex.acquire()
+			try {
+				bsInstance.dispose()
+			} finally {
+				mutex.release()
+			}
 		}
+	}
+	onBeforeUnmount(() => {
+		isCancelled = true
+		inviteCodeModalRef.value.removeEventListener('show.bs.modal', delayModalDispose)
+		inviteCodeModalRef.value.removeEventListener('hide.bs.modal', delayModalDispose)
+		inviteCodeModalRef.value.removeEventListener('hidden.bs.modal', hiddenModalAction)
+		disposeBsInstance(modalMutex, Modal, inviteCodeModalRef.value)
 	})
+
 	watch(openInviteCodeModal, (newValue) => {
-		if (newValue) {
+		if (newValue && !isCancelled) {
 			const modal = Modal.getOrCreateInstance(inviteCodeModalRef.value)
 			modal.show()
 		}
