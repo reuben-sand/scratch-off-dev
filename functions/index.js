@@ -25,7 +25,6 @@ const produceRoomId = () => {
 	}
 	return result
 }
-// , enforceAppCheck: true
 export const createRoom = onCall({ region: 'asia-southeast1' }, async (request) => {
 	/* 沒登入不能使用該函數 */
 	if (!request.auth) {

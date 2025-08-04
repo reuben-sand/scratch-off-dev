@@ -117,25 +117,11 @@
 			</div>
 		</div>
 	</main>
-	<WaitGameModal
-		@delay-dispose="delayModalDispose"
-		ref="waitGameModal"
-		:is-room-full="isRoomFull"
-		:is-room-Owner="isRoomOwner"
-		:set-completed="setCompleted"
-	/>
+	<WaitGameModal @delay-dispose="delayModalDispose" ref="waitGameModal" />
 </template>
 
 <script setup>
-	import {
-		ref,
-		computed,
-		useTemplateRef,
-		onMounted,
-		onUnmounted,
-		watch,
-		onBeforeUnmount,
-	} from 'vue'
+	import { ref, computed, useTemplateRef, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 	import { storeToRefs } from 'pinia'
 	import { useRoute, useRouter } from 'vue-router'
 	import { auth, realtimeDB, functions } from '@/firebase'
@@ -350,10 +336,12 @@
 		mainHeight.value = document.documentElement.clientHeight - headerRect.height
 		window.addEventListener('resize', debounceResizeAction)
 
+		let fullRefValue = false
 		const fullRef = realtimeRef(realtimeDB, 'rooms/' + roomId + '/full')
 		const unsubscribeFull = onValue(fullRef, (snapshot) => {
 			const data = snapshot.val()
 			if (data) {
+				fullRefValue = true
 				isRoomFull.value = true
 				/* 房間滿了，第二個玩家進來，才寫入需要同步的資料 */
 				if (isRoomOwner.value) {
@@ -364,11 +352,13 @@
 						winningRate: selectedWinningRate.value,
 					})
 				}
-			} else {
+			} else if (fullRefValue === true && !data) {
 				/*  當其中一個玩家離開時，full的節點會刪除，所以動作會觸發，導致回到首頁 */
 				isRoomFull.value = false
+				router.push('/')
 			}
 		})
+
 		allUnsubscribes.push(unsubscribeFull)
 		if (!isRoomOwner.value) {
 			const winningTemplateRef = realtimeRef(
@@ -446,10 +436,5 @@
 		onDisconnect(userRoomsUidRef).cancel()
 		remove(userRoomsUidRef)
 		isRoomOwner.value = false
-	})
-	watch(isRoomFull, (newValue) => {
-		if (!newValue) {
-			router.push('/')
-		}
 	})
 </script>

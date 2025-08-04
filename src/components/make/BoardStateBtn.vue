@@ -78,17 +78,26 @@
 	</div>
 </template>
 <script setup>
-	import { ref, computed, useTemplateRef, onMounted, watch, onBeforeUnmount } from 'vue'
-	import { useRouter } from 'vue-router'
+	import {
+		ref,
+		computed,
+		useTemplateRef,
+		onMounted,
+		watch,
+		onBeforeUnmount,
+		onUnmounted,
+	} from 'vue'
+	import { useRouter, onBeforeRouteLeave } from 'vue-router'
 	import { storeToRefs } from 'pinia'
 	import { Toast, Tooltip, Modal } from 'bootstrap'
 	import { updateDoc, doc, getDoc, arrayUnion } from 'firebase/firestore'
-	import { auth, firestoreDB, functions } from '@/firebase'
+	import { auth, firestoreDB, realtimeDB, functions } from '@/firebase'
 	import { debounce } from '@/composables/useRateLimit'
 	import { Mutex } from '@/composables/useLock'
 	import { useUserStore } from '@/stores/UserStore'
 	import { useWindowStore } from '@/stores/WindowStore'
 	import { httpsCallable } from 'firebase/functions'
+	import { onDisconnect, ref as realtimeRef, remove } from 'firebase/database'
 
 	/* pinia store*/
 	const userStore = useUserStore()
@@ -239,6 +248,9 @@
 		saveToolitipTriggersRef.value.addEventListener('hide.bs.tooltip', delayTooltipDispose)
 		createToolitipTriggersRef.value.addEventListener('show.bs.tooltip', delayTooltipDispose)
 		createToolitipTriggersRef.value.addEventListener('hide.bs.tooltip', delayTooltipDispose)
+		/* 斷線或是離開該view刪除自己擁有房間的資訊，在cloud function會監控該刪除的動作，連帶刪除所有房間相關資料 */
+		const userRoomsUidRef = realtimeRef(realtimeDB, 'userRooms/' + auth.currentUser.uid)
+		onDisconnect(userRoomsUidRef).remove()
 	})
 	const disposeBsInstance = async (mutex, type, templateRefValue) => {
 		if (type.getInstance(templateRefValue)) {
@@ -252,7 +264,7 @@
 		}
 	}
 	onBeforeUnmount(() => {
-		isCancelled = false
+		isCancelled = true
 		createRoomModalRef.value.removeEventListener('show.bs.modal', delayModalDispose)
 		createRoomModalRef.value.removeEventListener('hide.bs.modal', delayModalDispose)
 		toastRef.value.removeEventListener('show.bs.toast', delayToastDispose)
@@ -261,11 +273,20 @@
 		saveToolitipTriggersRef.value.removeEventListener('hide.bs.tooltip', delayTooltipDispose)
 		createToolitipTriggersRef.value.removeEventListener('show.bs.tooltip', delayTooltipDispose)
 		createToolitipTriggersRef.value.removeEventListener('hide.bs.tooltip', delayTooltipDispose)
-
 		disposeBsInstance(modalMutex, Modal, createRoomModalRef.value)
 		disposeBsInstance(toastMutex, Toast, toastRef.value)
 		disposeBsInstance(saveTooltipMutex, Tooltip, saveToolitipTriggersRef.value)
 		disposeBsInstance(createTooltipMutex, Tooltip, createToolitipTriggersRef.value)
+	})
+	onUnmounted(() => {
+		const userRoomsUidRef = realtimeRef(realtimeDB, 'userRooms/' + auth.currentUser.uid)
+		onDisconnect(userRoomsUidRef).cancel()
+	})
+	onBeforeRouteLeave((to) => {
+		if (to.name !== 'playroom') {
+			const userRoomsUidRef = realtimeRef(realtimeDB, 'userRooms/' + auth.currentUser.uid)
+			remove(userRoomsUidRef)
+		}
 	})
 	watch(
 		deviceRatioChange,
