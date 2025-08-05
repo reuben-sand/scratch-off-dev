@@ -60,7 +60,7 @@
 	const imageSrc = ref('')
 
 	let minX, maxX, minY, maxY
-	let opactiyPixelPoints = new Set()
+	let opacityPixelPoints = new Set()
 	let pointsSize
 	const makeInnerScratchOff = async () => {
 		const offscreenCanvas = new OffscreenCanvas(boardCanvasWidth.value, boardCanvasHeight.value)
@@ -91,11 +91,10 @@
 
 		for (let i = 3; i <= imageData.data.length; i += 4) {
 			if (imageData.data[i] > 0) {
-				opactiyPixelPoints.add(i)
+				opacityPixelPoints.add(i)
 			}
 		}
-
-		pointsSize = opactiyPixelPoints.size
+		pointsSize = opacityPixelPoints.size
 
 		ctx.restore()
 		ctx.save()
@@ -261,14 +260,13 @@
 		scratchOffPathData = []
 		beginDrawing = false
 		ctx.restore()
-
-		const imageData = ctx.getImageData(minX, minY, maxX - minX, maxX - minY)
-		for (const i of opactiyPixelPoints) {
+		const imageData = ctx.getImageData(minX, minY, maxX - minX, maxY - minY)
+		for (const i of opacityPixelPoints) {
 			if (imageData.data[i] === 0) {
-				opactiyPixelPoints.delete(i)
+				opacityPixelPoints.delete(i)
 			}
 		}
-		if (opactiyPixelPoints.size < Math.floor(pointsSize / 4)) {
+		if (opacityPixelPoints.size < Math.floor(pointsSize / 4)) {
 			if (isCancelled) return
 			gameOverModalRef.value.getOrCreateModal().show()
 		}
@@ -339,13 +337,13 @@
 					ctx.restore()
 					pathIndex++
 
-					const imageData = ctx.getImageData(minX, minY, maxX - minX, maxX - minY)
-					for (const i of opactiyPixelPoints) {
+					const imageData = ctx.getImageData(minX, minY, maxX - minX, maxY - minY)
+					for (const i of opacityPixelPoints) {
 						if (imageData.data[i] === 0) {
-							opactiyPixelPoints.delete(i)
+							opacityPixelPoints.delete(i)
 						}
 					}
-					if (opactiyPixelPoints.size < Math.floor(pointsSize / 4)) {
+					if (opacityPixelPoints.size < Math.floor(pointsSize / 4)) {
 						if (isCancelled) return
 						gameOverModalRef.value.getOrCreateModal().show()
 					}
