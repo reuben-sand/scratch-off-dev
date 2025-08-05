@@ -89,7 +89,12 @@
 				waitRoute.value = inviteCode.value
 				const modal = Modal.getOrCreateInstance(inviteCodeModalRef.value)
 				modal.hide()
-				router.push(`/playroom/${inviteCode.value}`)
+				await modalMutex.acquire()
+				try {
+					router.push(`/playroom/${inviteCode.value}`)
+				} finally {
+					modalMutex.release()
+				}
 			} catch (error) {
 				inputisInvalid.value = true
 				inviteCodeInvalid.value = error.message
