@@ -6,7 +6,7 @@
 		tabindex="-1"
 		data-bs-backdrop="static"
 	>
-		<div class="modal-dialog">
+		<div class="modal-dialog modal-dialog-centered">
 			<div class="modal-content">
 				<div class="modal-header">
 					<div class="modal-title">遊戲結果</div>
