@@ -39,7 +39,10 @@
 				<fieldset class="row mb-3 align-items-center">
 					<legend class="fs-6 col-lg-3 col-12 mb-3">選擇中獎樣式：</legend>
 					<div class="col-lg-9 col-12 text-start">
-						<div class="overflow-auto" style="white-space: nowrap">
+						<div
+							class="overflow-auto d-flex justify-content-center justify-content-lg-start"
+							style="white-space: nowrap"
+						>
 							<div
 								v-for="(roomerTemplate, index) in roomerTemplatesList"
 								:key="roomerTemplate.id"
@@ -69,7 +72,10 @@
 				<fieldset class="row align-items-center">
 					<legend class="fs-6 col-lg-3 col-12 mb-3">選擇槓龜樣式：</legend>
 					<div class="col-lg-9 col-12 text-start mb-3">
-						<div class="overflow-auto" style="white-space: nowrap">
+						<div
+							class="overflow-auto d-flex justify-content-center justify-content-lg-start"
+							style="white-space: nowrap"
+						>
 							<div
 								v-for="(roomerTemplate, index) in roomerTemplatesList"
 								:key="roomerTemplate.id"
