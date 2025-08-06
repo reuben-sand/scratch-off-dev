@@ -208,6 +208,7 @@
 	const canvasMousedown = (event) => {
 		const ctx = outerCanvasRef.value.getContext('2d')
 		ctx.save()
+		ctx.lineCap = 'square'
 		ctx.lineWidth = 10
 		ctx.globalCompositeOperation = 'destination-out'
 		const rect = outerCanvasRef.value.getBoundingClientRect()
@@ -319,18 +320,19 @@
 				if (data) {
 					const ctx = outerCanvasRef.value.getContext('2d')
 					ctx.save()
-
+					ctx.lineCap = 'square'
 					ctx.lineWidth = 10
 					ctx.globalCompositeOperation = 'destination-out'
-					ctx.beginPath()
 					let subPathData = data['path' + pathIndex][0]
 					if (data['path' + pathIndex].length > 0) {
+						ctx.beginPath()
 						ctx.moveTo(subPathData.x, subPathData.y)
 					}
 					for (let i = 1; i < data['path' + pathIndex].length; i++) {
 						subPathData = data['path' + pathIndex][i]
 						ctx.lineTo(subPathData.x, subPathData.y)
 						ctx.stroke()
+						ctx.beginPath()
 						ctx.moveTo(subPathData.x, subPathData.y)
 					}
 
