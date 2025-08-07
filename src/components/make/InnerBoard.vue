@@ -2,9 +2,12 @@
 	<canvas
 		v-bind="$attrs"
 		ref="canvas"
-		@mousedown="canvasMousedown"
-		@mousemove="canvasMousemove"
-		@mouseup="canvasMouseup"
+		@mousedown="onPointerDown"
+		@mousemove="onPointerMove"
+		@mouseup="onPointerUp"
+		@touchstart="onPointerDown"
+		@touchmove="onPointerMove"
+		@touchend="onPointerUp"
 		@click="canvasClick"
 	></canvas>
 	<div v-if="textBoxShowing" :style="transformTextBox" id="text-box" class="position-absolute">
@@ -153,27 +156,45 @@
 	let oneStep
 	let x
 	let y
-	const canvasMousedownPen = (event) => {
+	const startStrokePen = (event) => {
+		let eventPositionX
+		let eventPositionY
+		if (event.type === 'touchstart') {
+			eventPositionX = event.touches[0].clientX
+			eventPositionY = event.touches[0].clientY
+		} else {
+			eventPositionX = event.clientX
+			eventPositionY = event.clientY
+		}
 		pathData.tool = 'pen'
 		const ctx = canvasRef.value.getContext('2d')
 		ctx.lineWidth = 2
 		ctx.strokeStyle = currentColor.value.hex8
 		pathData.color = currentColor.value.hex8
 		const rect = canvasRef.value.getBoundingClientRect()
-		x = Math.floor((event.clientX - rect.left) / scaleX)
-		y = Math.floor((event.clientY - rect.top) / scaleY)
+		x = Math.floor((eventPositionX - rect.left) / scaleX)
+		y = Math.floor((eventPositionY - rect.top) / scaleY)
 		beginDrawing = true
 		path = new Path2D()
 		path.moveTo(x, y)
 		pathData.actions.push({ x: x, y: y })
 		oneStep = true
 	}
-	const canvasMousemovePen = rafThrottle((event) => {
+	const moveStrokePen = rafThrottle((event) => {
 		if (beginDrawing) {
+			let eventPositionX
+			let eventPositionY
+			if (event.type === 'touchmove') {
+				eventPositionX = event.touches[0].clientX
+				eventPositionY = event.touches[0].clientY
+			} else {
+				eventPositionX = event.clientX
+				eventPositionY = event.clientY
+			}
 			const ctx = canvasRef.value.getContext('2d')
 			const rect = canvasRef.value.getBoundingClientRect()
-			const currentX = Math.floor((event.clientX - rect.left) / scaleX)
-			const currentY = Math.floor((event.clientY - rect.top) / scaleY)
+			const currentX = Math.floor((eventPositionX - rect.left) / scaleX)
+			const currentY = Math.floor((eventPositionY - rect.top) / scaleY)
 			if (Math.abs(currentX - x) > 4 || Math.abs(currentY - y) > 4) {
 				pathData.actions.push({ x: currentX, y: currentY })
 				if (oneStep) {
@@ -193,32 +214,50 @@
 			}
 		}
 	})
-	const canvasMouseupPen = () => {
+	const endStrokePen = () => {
 		emit('updatePath', { ...pathData })
 		pathData = { actions: [] }
 		beginDrawing = false
 	}
-	const canvasMousedownEraser = (event) => {
+	const startStrokeEraser = (event) => {
+		let eventPositionX
+		let eventPositionY
+		if (event.type === 'touchstart') {
+			eventPositionX = event.touches[0].clientX
+			eventPositionY = event.touches[0].clientY
+		} else {
+			eventPositionX = event.clientX
+			eventPositionY = event.clientY
+		}
 		pathData.tool = 'eraser'
 		const ctx = canvasRef.value.getContext('2d')
 		ctx.save()
 		ctx.lineWidth = 10
 		ctx.globalCompositeOperation = 'destination-out'
 		const rect = canvasRef.value.getBoundingClientRect()
-		x = Math.floor((event.clientX - rect.left) / scaleX)
-		y = Math.floor((event.clientY - rect.top).scaleY)
+		x = Math.floor((eventPositionX - rect.left) / scaleX)
+		y = Math.floor((eventPositionY - rect.top).scaleY)
 		beginDrawing = true
 		path = new Path2D()
 		path.moveTo(x, y)
 		pathData.actions.push({ x: x, y: y })
 		oneStep = true
 	}
-	const canvasMousemoveEraser = rafThrottle((event) => {
+	const moveStrokeEraser = rafThrottle((event) => {
 		if (beginDrawing) {
+			let eventPositionX
+			let eventPositionY
+			if (event.type === 'touchmove') {
+				eventPositionX = event.touches[0].clientX
+				eventPositionY = event.touches[0].clientY
+			} else {
+				eventPositionX = event.clientX
+				eventPositionY = event.clientY
+			}
 			const ctx = canvasRef.value.getContext('2d')
 			const rect = canvasRef.value.getBoundingClientRect()
-			const currentX = Math.floor((event.clientX - rect.left) / scaleX)
-			const currentY = Math.floor((event.clientY - rect.top) / scaleY)
+			const currentX = Math.floor((eventPositionX - rect.left) / scaleX)
+			const currentY = Math.floor((eventPositionY - rect.top) / scaleY)
 			if (Math.abs(currentX - x) > 4 || Math.abs(currentY - y) > 4) {
 				pathData.actions.push({ x: currentX, y: currentY })
 				if (oneStep) {
@@ -238,7 +277,7 @@
 			}
 		}
 	})
-	const canvasMouseupEraser = () => {
+	const endStrokeEraser = () => {
 		const ctx = canvasRef.value.getContext('2d')
 		emit('updatePath', { ...pathData })
 		pathData = { actions: [] }
@@ -249,27 +288,27 @@
 	const canvasMouseupFonts = () => {
 		allowTextBoxMove.value = false
 	}
-	const canvasMousedown = (event) => {
+	const onPointerDown = (event) => {
 		if (toolMode === 'pen') {
-			canvasMousedownPen(event)
+			startStrokePen(event)
 		} else if (toolMode === 'eraser') {
-			canvasMousedownEraser(event)
+			startStrokeEraser(event)
 		}
 	}
-	const canvasMousemove = (event) => {
+	const onPointerMove = (event) => {
 		if (toolMode === 'pen') {
-			canvasMousemovePen(event)
+			moveStrokePen(event)
 		} else if (toolMode === 'eraser') {
-			canvasMousemoveEraser(event)
+			moveStrokeEraser(event)
 		} else if (toolMode === 'fonts') {
 			textMoving(event)
 		}
 	}
-	const canvasMouseup = () => {
+	const onPointerUp = () => {
 		if (toolMode === 'pen') {
-			canvasMouseupPen()
+			endStrokePen()
 		} else if (toolMode === 'eraser') {
-			canvasMouseupEraser()
+			endStrokeEraser()
 		} else if (toolMode === 'fonts') {
 			canvasMouseupFonts()
 		}

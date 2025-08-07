@@ -1,9 +1,12 @@
 <template>
 	<canvas
 		ref="canvas"
-		@mousedown="mousedownAction"
-		@mousemove="mousemoveAction"
-		@mouseup="mouseupAction"
+		@mousedown="onPointerDown"
+		@mousemove="onPointerMove"
+		@mouseup="onPointerUp"
+		@touchstart="onPointerDown"
+		@touchmove="onPointerMove"
+		@touchend="onPointerUp"
 	></canvas>
 </template>
 
@@ -38,14 +41,23 @@
 	let oneStep
 	let x
 	let y
-	const mousedownActionPen = (event) => {
-		// pathData.tool = 'pen'
+	const penStartStroke = (event) => {
+		let eventPositionX
+		let eventPositionY
+		if (event.type === 'touchstart') {
+			eventPositionX = event.touches[0].clientX
+			eventPositionY = event.touches[0].clientY
+		} else {
+			eventPositionX = event.clientX
+			eventPositionY = event.clientY
+		}
+
 		const ctx = canvasRef.value.getContext('2d')
 		ctx.lineWidth = 2
 		ctx.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
 		const rect = canvasRef.value.getBoundingClientRect()
-		x = Math.floor((event.clientX - rect.left) / scaleX)
-		y = Math.floor((event.clientY - rect.top) / scaleY)
+		x = Math.floor((eventPositionX - rect.left) / scaleX)
+		y = Math.floor((eventPositionY - rect.top) / scaleY)
 		beginDrawing = true
 		path = new Path2D()
 		path.moveTo(x, y)
@@ -55,12 +67,21 @@
 		pathData.actions.push({ x: x, y: y })
 		oneStep = true
 	}
-	const mousemoveActionPen = rafThrottle((event) => {
+	const penMoveStroke = rafThrottle((event) => {
 		if (beginDrawing) {
+			let eventPositionX
+			let eventPositionY
+			if (event.type === 'touchmove') {
+				eventPositionX = event.touches[0].clientX
+				eventPositionY = event.touches[0].clientY
+			} else {
+				eventPositionX = event.clientX
+				eventPositionY = event.clientY
+			}
 			const ctx = canvasRef.value.getContext('2d')
 			const rect = canvasRef.value.getBoundingClientRect()
-			const currentX = Math.floor((event.clientX - rect.left) / scaleX)
-			const currentY = Math.floor((event.clientY - rect.top) / scaleY)
+			const currentX = Math.floor((eventPositionX - rect.left) / scaleX)
+			const currentY = Math.floor((eventPositionY - rect.top) / scaleY)
 			if (Math.abs(currentX - x) > 4 || Math.abs(currentY - y) > 4) {
 				completePath.lineTo(currentX, currentY)
 				pathData.actions.push({ x: currentX, y: currentY })
@@ -81,7 +102,7 @@
 			}
 		}
 	})
-	const mouseupActionPen = () => {
+	const penEndStroke = () => {
 		if (beginDrawing) {
 			const ctx = canvasRef.value.getContext('2d')
 			ctx.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
@@ -93,19 +114,19 @@
 			beginDrawing = false
 		}
 	}
-	const mousedownAction = (event) => {
+	const onPointerDown = (event) => {
 		if (toolMode === 'pen') {
-			mousedownActionPen(event)
+			penStartStroke(event)
 		}
 	}
-	const mousemoveAction = (event) => {
+	const onPointerMove = (event) => {
 		if (toolMode === 'pen') {
-			mousemoveActionPen(event)
+			penMoveStroke(event)
 		}
 	}
-	const mouseupAction = () => {
+	const onPointerUp = () => {
 		if (toolMode === 'pen') {
-			mouseupActionPen()
+			penEndStroke()
 		}
 	}
 	watch(clearBoard, (newValue) => {
