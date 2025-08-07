@@ -1,5 +1,5 @@
 <template>
-	<AppHeader id="home-header" v-if="!isAnimating" />
+	<AppHeader id="home-header" v-if="!isAnimating" :no-offcanvas="true" />
 	<div id="story-section" class="position-relative">
 		<HoverAnime
 			class="position-absolute start-50"
