@@ -195,7 +195,7 @@
 		emailInvalid.value = ''
 		passwordInvalid.value = ''
 		userNameInvalid.value = ''
-		inputisInvalid.value = true
+		showValidation.value = true
 		try {
 			await signInWithEmailAndPassword(auth, email.value, password.value)
 			const modal = Modal.getOrCreateInstance(userModalRef.value)
